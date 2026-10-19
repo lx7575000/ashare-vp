@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "updated_at": "2026-10-19T22:46:47",
+  "items": [
+    {
+      "date": "2026-10-19",
+      "session": "close",
+      "session_label": "收盘",
+      "regime": "震荡",
+      "avg_score": 26.68,
+      "asset_count": 25,
+      "generated_at": "2026-10-19T22:46:47",
+      "file": "2026-10-19_close.html"
+    },
+    {
+      "date": "2026-10-16",
+      "session": "close",
+      "session_label": "收盘",
+      "regime": "偏弱",
+      "avg_score": 19.12,
+      "asset_count": 25,
+      "generated_at": "2026-10-18T23:16:25",
+      "file": "2026-10-16_close.html"
+    },
+    {
+      "date": "2026-10-16",
+      "session": "1400",
+      "session_label": "14:00 盘中 · 回放",
+      "regime": "偏弱",
+      "avg_score": 19.12,
+      "asset_count": 25,
+      "generated_at": "2026-10-18T22:14:50+08:00",
+      "file": "2026-10-16_1400.html"
+    }
+  ]
+}

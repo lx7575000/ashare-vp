@@ -1,0 +1,167 @@
+name: daily-vp
+
+# 每个交易日三个时段：10:30 / 14:00 盘中，收盘后生成日报。
+# cron 用 UTC：02:30 = 10:30 CST，06:00 = 14:00 CST，10:20 = 18:20 CST。
+# GitHub 定时任务可能延迟几分钟，属正常现象。
+on:
+  schedule:
+    - cron: "30 2 * * 1-5"
+    - cron: "0 6 * * 1-5"
+    - cron: "20 10 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      session:
+        description: "要生成的时段"
+        required: true
+        default: "close"
+        type: choice
+        options:
+          - "1030"
+          - "1400"
+          - "close"
+      force:
+        description: "忽略时段窗口，强制生成（回放/补跑）"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-vp
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出仓库（含历史归档）
+        uses: actions/checkout@v4
+
+      - name: 恢复上一时段快照（用于连贯性对比）
+        uses: actions/cache@v4
+        with:
+          path: data/snapshots
+          key: vp-snapshots-${{ github.run_id }}
+          restore-keys: |
+            vp-snapshots-
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 确定本次时段
+        id: session
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            session="${{ github.event.inputs.session }}"
+          else
+            case "${{ github.event.schedule }}" in
+              "30 2 * * 1-5") session="1030" ;;
+              "0 6 * * 1-5")  session="1400" ;;
+              *)              session="close" ;;
+            esac
+          fi
+          now=$((10#$(date +%H%M)))
+          force="${{ github.event.inputs.force }}"
+          if [ "$force" != "true" ]; then
+            case "$session" in
+              1030)
+                if [ "$now" -lt 1015 ] || [ "$now" -gt 1120 ]; then
+                  echo "skip=true" >> "$GITHUB_OUTPUT"
+                  echo "不在 10:30 窗口（10:15–11:20），跳过。"
+                  exit 0
+                fi
+                ;;
+              1400)
+                if [ "$now" -lt 1345 ] || [ "$now" -gt 1450 ]; then
+                  echo "skip=true" >> "$GITHUB_OUTPUT"
+                  echo "不在 14:00 窗口（13:45–14:50），跳过。"
+                  exit 0
+                fi
+                ;;
+              close)
+                if [ "$now" -lt 1505 ]; then
+                  echo "skip=true" >> "$GITHUB_OUTPUT"
+                  echo "15:05 之前不生成收盘报告，跳过。"
+                  exit 0
+                fi
+                ;;
+            esac
+          fi
+          echo "key=$session" >> "$GITHUB_OUTPUT"
+          echo "本次时段：$session"
+
+      - name: 生成报告
+        id: generate
+        if: steps.session.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set +e
+          if [ "${{ steps.session.outputs.key }}" = "close" ]; then
+            python3 -m ashare_vp --quiet
+          else
+            python3 -m ashare_vp.session --session "${{ steps.session.outputs.key }}" --require-current --quiet
+          fi
+          code=$?
+          set -e
+          if [ "$code" -eq 3 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "非交易日或没有当日快照，跳过本次发布。"
+            exit 0
+          fi
+          exit "$code"
+
+      - name: 组装站点并校验日期/标的数
+        id: build
+        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/build_site.py --require-date "$(date +%F)" --min-assets 20
+          code=$?
+          set -e
+          if [ "$code" -eq 3 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "最新报告日期不是今天（休市或行情未更新），跳过发布。"
+            exit 0
+          fi
+          exit "$code"
+
+      - name: 提交站点归档
+        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site
+          if git diff --cached --quiet; then
+            echo "站点没有变化，跳过提交。"
+          else
+            git commit -m "site: $(date +%F) ${{ steps.session.outputs.key }}"
+            git push
+          fi
+
+      - name: 安装 Node 22（wrangler 4 要求）
+        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 部署到 Cloudflare Workers
+        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          # Worker 名称和 assets 目录在仓库根目录的 wrangler.jsonc 里。
+          command: deploy

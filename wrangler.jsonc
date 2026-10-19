@@ -1,0 +1,13 @@
+{
+  // Cloudflare Worker 名称：与线上 https://ashare-vp.<你的子域>.workers.dev 对应。
+  // 如果以后改名，这里和 Cloudflare 控制台里的 Worker 名称要同步。
+  "name": "ashare-vp",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    // 只部署构建好的静态站点，不跑 Worker 脚本。
+    "directory": "./site",
+    // 与 Cloudflare 默认行为一致：/history.html 会 307 到 /history。
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}

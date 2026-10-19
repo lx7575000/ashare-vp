@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "settings": {
+    "start_date": "2024-01-01",
+    "min_bars": 30,
+    "source_order": ["tencent", "sina", "eastmoney"],
+    "timeout": 10
+  },
+  "groups": [
+    {
+      "name": "创新药ETF",
+      "kind": "etf",
+      "assets": [
+        {"code": "159992", "name": "创新药ETF银华", "exchange": "SZ", "secid": "0.159992", "tencent": "sz159992", "sina": "sz159992"},
+        {"code": "516080", "name": "创新药ETF易方达", "exchange": "SH", "secid": "1.516080", "tencent": "sh516080", "sina": "sh516080"},
+        {"code": "159835", "name": "创新药ETF建信", "exchange": "SZ", "secid": "0.159835", "tencent": "sz159835", "sina": "sz159835"},
+        {"code": "517110", "name": "创新药ETF国泰", "exchange": "SH", "secid": "1.517110", "tencent": "sh517110", "sina": "sh517110"},
+        {"code": "159858", "name": "创新药ETF南方", "exchange": "SZ", "secid": "0.159858", "tencent": "sz159858", "sina": "sz159858"}
+      ]
+    },
+    {
+      "name": "军工ETF",
+      "kind": "etf",
+      "assets": [
+        {"code": "512660", "name": "军工ETF国泰", "exchange": "SH", "secid": "1.512660", "tencent": "sh512660", "sina": "sh512660"},
+        {"code": "512710", "name": "军工龙头ETF富国", "exchange": "SH", "secid": "1.512710", "tencent": "sh512710", "sina": "sh512710"},
+        {"code": "512810", "name": "军工ETF华宝", "exchange": "SH", "secid": "1.512810", "tencent": "sh512810", "sina": "sh512810"},
+        {"code": "512680", "name": "军工ETF广发", "exchange": "SH", "secid": "1.512680", "tencent": "sh512680", "sina": "sh512680"},
+        {"code": "512560", "name": "军工ETF易方达", "exchange": "SH", "secid": "1.512560", "tencent": "sh512560", "sina": "sh512560"}
+      ]
+    },
+    {
+      "name": "生物医药ETF",
+      "kind": "etf",
+      "assets": [
+        {"code": "512290", "name": "生物医药ETF国泰", "exchange": "SH", "secid": "1.512290", "tencent": "sh512290", "sina": "sh512290"},
+        {"code": "159859", "name": "生物医药ETF天弘", "exchange": "SZ", "secid": "0.159859", "tencent": "sz159859", "sina": "sz159859"},
+        {"code": "159839", "name": "生物医药ETF汇添富", "exchange": "SZ", "secid": "0.159839", "tencent": "sz159839", "sina": "sz159839"},
+        {"code": "516500", "name": "生物科技ETF华夏", "exchange": "SH", "secid": "1.516500", "tencent": "sh516500", "sina": "sh516500"}
+      ]
+    },
+    {
+      "name": "宽基指数",
+      "kind": "index",
+      "assets": [
+        {"code": "000001", "name": "上证指数", "exchange": "SH", "secid": "1.000001", "tencent": "sh000001", "sina": "sh000001"},
+        {"code": "399001", "name": "深证成指", "exchange": "SZ", "secid": "0.399001", "tencent": "sz399001", "sina": "sz399001"},
+        {"code": "399006", "name": "创业板指", "exchange": "SZ", "secid": "0.399006", "tencent": "sz399006", "sina": "sz399006"},
+        {"code": "000688", "name": "科创50", "exchange": "SH", "secid": "1.000688", "tencent": "sh000688", "sina": "sh000688"},
+        {"code": "000300", "name": "沪深300", "exchange": "SH", "secid": "1.000300", "tencent": "sh000300", "sina": "sh000300"},
+        {"code": "000016", "name": "上证50", "exchange": "SH", "secid": "1.000016", "tencent": "sh000016", "sina": "sh000016"},
+        {"code": "000905", "name": "中证500", "exchange": "SH", "secid": "1.000905", "tencent": "sh000905", "sina": "sh000905"},
+        {"code": "000852", "name": "中证1000", "exchange": "SH", "secid": "1.000852", "tencent": "sh000852", "sina": "sh000852"},
+        {"code": "000510", "name": "中证A500", "exchange": "SH", "secid": "1.000510", "tencent": "sh000510", "sina": "sh000510"},
+        {"code": "000985", "name": "中证全指", "exchange": "SH", "secid": "1.000985", "tencent": "sh000985", "sina": "sh000985"},
+        {"code": "899050", "name": "北证50", "exchange": "BJ", "secid": "0.899050", "tencent": "bj899050", "sina": "bj899050"}
+      ]
+    }
+  ]
+}

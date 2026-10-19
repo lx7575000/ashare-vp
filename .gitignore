@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.DS_Store
+.pnpm-store/
+node_modules/
+
+# 行情缓存可随时重新抓取，不纳入版本管理
+data/cache/*.json
+logs/
+
+# 部署仓库只保留整理后的 site/；原始报告和快照不入库
+reports/
+data/snapshots/
