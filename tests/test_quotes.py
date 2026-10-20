@@ -13,6 +13,7 @@ from ashare_vp.quotes import (
     session_fraction,
     session_label,
 )
+from ashare_vp.session import session_is_replay
 from ashare_vp.models import Asset
 
 ETF = Asset("159999", "测试ETF", "测试", "etf", "SZ", "0.159999", "sz159999", "sz159999")
@@ -58,6 +59,21 @@ class QuoteTests(unittest.TestCase):
         self.assertEqual(current_session_key(at(14, 0)), "1400")
         self.assertEqual(current_session_key(at(15, 0)), "close")
         self.assertEqual(session_label("1030"), "10:30 盘中")
+
+    def test_session_is_replay_when_clock_mismatches(self):
+        def at(hour, minute):
+            return datetime(2026, 10, 20, hour, minute, tzinfo=TZ)
+
+        # 11:44 强制跑 14:00：数据是 11:44 的，应标记为回放。
+        self.assertTrue(session_is_replay("1400", at(11, 44)))
+        self.assertTrue(session_is_replay("close", at(11, 44)))
+        self.assertFalse(session_is_replay("1100", at(11, 44)))
+        # 真正 14:00 跑 14:00：不是回放。
+        self.assertFalse(session_is_replay("1400", at(14, 0)))
+        self.assertTrue(session_is_replay("close", at(14, 0)))
+        # 收盘后跑收盘：不是回放。
+        self.assertFalse(session_is_replay("close", at(15, 30)))
+        self.assertTrue(session_is_replay("1400", at(15, 30)))
 
     def test_session_elapsed_minutes(self):
         morning = datetime(2026, 10, 16, 11, 0, tzinfo=TZ)

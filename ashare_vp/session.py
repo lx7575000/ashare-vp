@@ -114,6 +114,17 @@ def main(argv=None) -> int:
     )
 
 
+def session_is_replay(session: str, now: Optional[datetime] = None) -> bool:
+    """请求时段与当前时段不一致时视为回放。
+
+    例如在 11:44 用 ``--session 1400 --force`` 生成报告，数据实际是
+    11:44 的盘中快照；如果仍标成“14:00 盘中”，标题会误导。这里在
+    生成时把这种同日跨时段运行标记为“回放”。
+    """
+    current = now.astimezone(TZ) if now else datetime.now(TZ)
+    return session != current_session_key(current)
+
+
 def run_session(
     *,
     session: str,
@@ -180,7 +191,7 @@ def run_session(
     quote_used = 0
     quote_time = None
     quote_date = None
-    replay = False
+    replay = session_is_replay(session, now)
     for result in results:
         bars = list(result.bars)
         quote = quotes.get(result.asset.code)
