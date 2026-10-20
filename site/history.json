@@ -1,7 +1,17 @@
 {
   "version": 1,
-  "updated_at": "2026-10-19T23:52:10",
+  "updated_at": "2026-10-20T11:44:35+08:00",
   "items": [
+    {
+      "date": "2026-10-20",
+      "session": "1400",
+      "session_label": "14:00 盘中",
+      "regime": "震荡",
+      "avg_score": 26.4,
+      "asset_count": 25,
+      "generated_at": "2026-10-20T11:44:35+08:00",
+      "file": "2026-10-20_1400.html"
+    },
     {
       "date": "2026-10-19",
       "session": "close",
