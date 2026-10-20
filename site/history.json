@@ -13,6 +13,16 @@
       "file": "2026-10-20_1400.html"
     },
     {
+      "date": "2026-10-20",
+      "session": "1030",
+      "session_label": "10:30 盘中 · 回放",
+      "regime": "偏弱",
+      "avg_score": 23.84,
+      "asset_count": 25,
+      "generated_at": "2026-10-20T14:06:14+08:00",
+      "file": "2026-10-20_1030.html"
+    },
+    {
       "date": "2026-10-19",
       "session": "close",
       "session_label": "收盘",
