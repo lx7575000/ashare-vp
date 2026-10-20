@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       session:
-        description: "要生成的时段"
+        description: "要生成的时段（close 需 15:05 之后）"
         required: true
         default: "close"
         type: choice
@@ -35,11 +35,19 @@ concurrency:
 env:
   TZ: Asia/Shanghai
   PYTHONUNBUFFERED: "1"
+  SITE_URL: ${{ vars.SITE_URL || 'https://ashare-vp.narcissusliu0428.workers.dev' }}
 
 jobs:
   publish:
+    name: 生成并提交站点
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      skip: ${{ steps.status.outputs.skip }}
+      commit_sha: ${{ steps.commit.outputs.sha }}
+      generated_at: ${{ steps.fingerprint.outputs.generated_at }}
+      as_of: ${{ steps.fingerprint.outputs.as_of }}
+      asset_count: ${{ steps.fingerprint.outputs.asset_count }}
     steps:
       - name: 检出仓库（含历史归档）
         uses: actions/checkout@v4
@@ -136,7 +144,15 @@ jobs:
           fi
           exit "$code"
 
+      - name: 读取本次构建指纹
+        id: fingerprint
+        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
+        shell: bash
+        run: |
+          python3 -c 'import json; from pathlib import Path; d=json.loads(Path("site/data/latest.json").read_text(encoding="utf-8")); m=d.get("meta",{}); print("generated_at="+str(m.get("generated_at",""))); print("as_of="+str(m.get("as_of",""))); print("asset_count="+str(len(d.get("assets") or [])))' >> "$GITHUB_OUTPUT"
+
       - name: 提交站点归档
+        id: commit
         if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
         shell: bash
         run: |
@@ -149,15 +165,70 @@ jobs:
             git commit -m "site: $(date +%F) ${{ steps.session.outputs.key }}"
             git push
           fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: 汇总运行状态
+        id: status
+        if: always()
+        shell: bash
+        env:
+          SESSION_SKIP: ${{ steps.session.outputs.skip }}
+          GENERATE_SKIP: ${{ steps.generate.outputs.skip }}
+          BUILD_SKIP: ${{ steps.build.outputs.skip }}
+        run: |
+          skip=false
+          for value in "$SESSION_SKIP" "$GENERATE_SKIP" "$BUILD_SKIP"; do
+            if [ "$value" = "true" ]; then
+              skip=true
+            fi
+          done
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+          if [ "$skip" = "true" ]; then
+            {
+              echo "### 本次运行已跳过"
+              echo ""
+              echo "没有生成报告、没有提交 site、没有部署到 Cloudflare。"
+              echo ""
+              echo "常见原因：不在 10:15–11:20 / 13:45–14:50 / 15:05 之后的时段窗口；或非交易日、当日行情未更新。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: 跳过提示
+        if: steps.status.outputs.skip == 'true'
+        run: echo "::notice title=本次未部署::当前不在允许时段，或数据条件不满足；未生成、未提交、未部署。"
+
+      - name: 写入成功摘要
+        if: steps.status.outputs.skip != 'true'
+        shell: bash
+        run: |
+          {
+            echo "### 站点已生成并提交"
+            echo ""
+            echo "- 报告日期：${{ steps.fingerprint.outputs.as_of }}"
+            echo "- 生成时间：${{ steps.fingerprint.outputs.generated_at }}"
+            echo "- 标的数：${{ steps.fingerprint.outputs.asset_count }}"
+            echo "- 提交：${{ steps.commit.outputs.sha }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: 部署到 Cloudflare
+    needs: publish
+    if: needs.publish.result == 'success' && needs.publish.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出本次提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish.outputs.commit_sha }}
+          fetch-depth: 1
 
       - name: 安装 Node 22（wrangler 4 要求）
-        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: 部署到 Cloudflare Workers
-        if: steps.session.outputs.skip != 'true' && steps.generate.outputs.skip != 'true' && steps.build.outputs.skip != 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -165,3 +236,75 @@ jobs:
           wranglerVersion: "4"
           # Worker 名称和 assets 目录在仓库根目录的 wrangler.jsonc 里。
           command: deploy
+
+      - name: 清理 Cloudflare 缓存（可选）
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$CF_ZONE_ID" ]; then
+            echo "::notice title=跳过缓存清理::未配置 CLOUDFLARE_ZONE_ID；将依赖 wrangler deploy 的版本切换和后续校验。"
+            exit 0
+          fi
+          echo "清理 Cloudflare 缓存：zone=$CF_ZONE_ID"
+          response=$(curl -fsS --max-time 20 -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+          echo "$response"
+          echo "$response" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("cache purge success:", d.get("success"), "errors:", d.get("errors") or []); sys.exit(0 if d.get("success") else 1)'
+
+      - name: 校验线上版本
+        env:
+          EXPECTED_GENERATED_AT: ${{ needs.publish.outputs.generated_at }}
+          EXPECTED_AS_OF: ${{ needs.publish.outputs.as_of }}
+          EXPECTED_ASSET_COUNT: ${{ needs.publish.outputs.asset_count }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$EXPECTED_GENERATED_AT" ] || [ -z "$EXPECTED_AS_OF" ] || [ -z "$EXPECTED_ASSET_COUNT" ]; then
+            echo "::error title=缺少构建指纹::publish job 没有输出完整的 generated_at/as_of/asset_count"
+            exit 1
+          fi
+          url="${SITE_URL%/}/data/latest.json"
+          echo "校验地址：$url"
+          sleep 5
+          for attempt in 1 2 3 4 5 6; do
+            echo "第 ${attempt} 次校验..."
+            if curl -fsSL --max-time 20 \
+              -H "Cache-Control: no-cache" \
+              -H "Pragma: no-cache" \
+              "${url}?verify=${GITHUB_RUN_ID}-${attempt}" \
+              -o /tmp/live-latest.json; then
+              if python3 scripts/verify_site.py /tmp/live-latest.json \
+                --generated-at "$EXPECTED_GENERATED_AT" \
+                --as-of "$EXPECTED_AS_OF" \
+                --asset-count "$EXPECTED_ASSET_COUNT"; then
+                echo "线上版本校验通过"
+                exit 0
+              fi
+            else
+              echo "请求失败，继续重试..."
+            fi
+            sleep 10
+          done
+          echo "::error title=线上版本校验失败::Cloudflare 返回的版本与本次构建不一致，请检查部署或清理缓存。"
+          echo "--- 线上响应头 ---"
+          curl -sSI --max-time 20 "$url" | grep -iE '^(etag|cf-cache-status|last-modified|cache-control)' || true
+          exit 1
+
+      - name: 写入部署摘要
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Cloudflare 部署"
+            echo ""
+            echo "- 站点：$SITE_URL"
+            echo "- 报告日期：${{ needs.publish.outputs.as_of }}"
+            echo "- 生成时间：${{ needs.publish.outputs.generated_at }}"
+            echo "- 标的数：${{ needs.publish.outputs.asset_count }}"
+          } >> "$GITHUB_STEP_SUMMARY"

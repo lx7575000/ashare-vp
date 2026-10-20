@@ -357,7 +357,7 @@ python3 -m ashare_vp.scheduler --dry-run
 在没有网络或非交易时段，可用本地缓存做一次完整联调：
 
 ```bash
-# 1. 单元 + 集成测试（65 个用例）
+# 1. 单元 + 集成测试（68 个用例）
 python3 -m unittest discover -s tests -v
 
 # 2. 收盘全链路：报告 + 建议 + 快照 + H5
@@ -383,7 +383,7 @@ python3 -m ashare_vp.scheduler --dry-run
 python3 -m unittest discover -s tests -v
 ```
 
-当前共 **65 个用例**，覆盖指标计算、信号识别、评分、多源解析、缓存回退、离线报告、CLI 筛选、建议生成、快照索引与清理、H5 渲染、盘中会话、调度器、HTTP 服务路径安全，以及 10:30 → 11:00 → 14:00 → 收盘的端到端连贯性。
+当前共 **68 个用例**，覆盖指标计算、信号识别、评分、多源解析、缓存回退、离线报告、CLI 筛选、建议生成、快照索引与清理、H5 渲染、盘中会话、调度器、HTTP 服务路径安全、部署后版本校验，以及 10:30 → 11:00 → 14:00 → 收盘的端到端连贯性。
 
 ## 目录结构
 
@@ -411,6 +411,7 @@ python3 -m unittest discover -s tests -v
 ├── data/snapshots/      # 盘中/收盘快照（运行后生成）
 ├── reports/             # 日报与 H5 输出（运行后生成）
 ├── templates/h5.html    # 单文件 H5 模板
+├── scripts/             # 站点组装与部署后版本校验
 ├── tests/               # 单元测试与端到端集成测试
 ├── run_daily.sh         # 每日运行脚本
 └── README.md
