@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -158,7 +158,7 @@ class CacheAndNormalizeTests(unittest.TestCase):
             fetcher.fetch(ASSET)
 
     def test_stale_cache_fallback(self):
-        bars = make_bars([100.0] * 40, [1000.0] * 40, start="2026-09-01")
+        bars = make_bars([100.0] * 40, [1000.0] * 40, start=(date.today() - timedelta(days=45)).isoformat())
         self.fetcher.end_date = date.today().isoformat()
         self.fetcher._save_cache(ASSET, bars, "test")
         # 手动把抓取时间改旧，使缓存不再“当日新鲜”

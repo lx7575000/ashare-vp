@@ -87,7 +87,8 @@ python3 -m ashare_vp.scheduler --once
 
 - `scripts/build_site.py`：把 `reports/h5/` 整理为 `site/`（首页 / 历史 / 归档 / JSON），自动脱敏本机路径、保留 120 天。
 - `wrangler.jsonc`：Cloudflare Worker 配置，Worker 名 `ashare-vp`，静态目录 `./site`。
-- `.github/workflows/daily.yml`：每个交易日 15:30（北京时间）生成收盘日报、提交归档并部署；18:20 作为收盘兜底。
+- `.github/workflows/daily.yml`：GitHub 负责 10:30 / 14:00 和 18:20 收盘兜底；15:30 收盘主跑由 Cloudflare Worker Cron 触发 `workflow_dispatch`。
+- `worker/index.mjs` + `wrangler.jsonc`：Cloudflare Cron + 静态资源 Worker，详见 [docs/外部定时器.md](docs/外部定时器.md)。
 - 完整方案、免费额度与国内访问备选：[docs/部署方案.md](docs/部署方案.md)。
 
 线上示例：<https://ashare-vp.narcissusliu0428.workers.dev/>
@@ -411,6 +412,7 @@ python3 -m unittest discover -s tests -v
 ├── data/snapshots/      # 盘中/收盘快照（运行后生成）
 ├── reports/             # 日报与 H5 输出（运行后生成）
 ├── templates/h5.html    # 单文件 H5 模板
+├── worker/index.mjs     # Cloudflare Cron -> GitHub workflow_dispatch
 ├── scripts/             # 站点组装、归档快照回填与部署后版本校验
 ├── tests/               # 单元测试与端到端集成测试
 ├── run_daily.sh         # 每日运行脚本

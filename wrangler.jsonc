@@ -2,12 +2,24 @@
   // Cloudflare Worker 名称：与线上 https://ashare-vp.<你的子域>.workers.dev 对应。
   // 如果以后改名，这里和 Cloudflare 控制台里的 Worker 名称要同步。
   "name": "ashare-vp",
+  "main": "worker/index.mjs",
   "compatibility_date": "2026-10-19",
   "assets": {
-    // 只部署构建好的静态站点，不跑 Worker 脚本。
+    // Worker 的 fetch() 会把普通网页请求交给这个绑定。
     "directory": "./site",
+    "binding": "ASSETS",
     // 与 Cloudflare 默认行为一致：/history.html 会 307 到 /history。
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none"
+  },
+  // Cloudflare Cron 使用 UTC：07:30 UTC = 北京时间 15:30。
+  "triggers": {
+    "crons": ["30 7 * * 1-5"]
+  },
+  "vars": {
+    "GITHUB_OWNER": "lx7575000",
+    "GITHUB_REPO": "ashare-vp",
+    "GITHUB_WORKFLOW": "daily.yml",
+    "GITHUB_REF": "main"
   }
 }

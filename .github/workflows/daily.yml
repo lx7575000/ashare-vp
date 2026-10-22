@@ -1,13 +1,13 @@
 name: daily-vp
 
-# 每个交易日：10:30 / 14:00 盘中，15:30 收盘主跑，18:20 收盘兜底。
-# cron 用 UTC：02:30 = 10:30 CST，06:00 = 14:00 CST，07:30 = 15:30 CST，10:20 = 18:20 CST。
+# GitHub 只负责 10:30 / 14:00 和 18:20 收盘兜底；
+# 15:30 收盘主跑由 Cloudflare Worker Cron 触发 workflow_dispatch。
+# cron 用 UTC：02:30 = 10:30 CST，06:00 = 14:00 CST，10:20 = 18:20 CST。
 # GitHub 定时任务可能延迟几分钟，属正常现象。
 on:
   schedule:
     - cron: "30 2 * * 1-5"
     - cron: "0 6 * * 1-5"
-    - cron: "30 7 * * 1-5"
     - cron: "20 10 * * 1-5"
   workflow_dispatch:
     inputs:
@@ -83,7 +83,6 @@ jobs:
             case "${{ github.event.schedule }}" in
               "30 2 * * 1-5") session="1030" ;;
               "0 6 * * 1-5")  session="1400" ;;
-              "30 7 * * 1-5") session="close" ;;
               "20 10 * * 1-5") session="close" ;;
               *)              session="close" ;;
             esac
