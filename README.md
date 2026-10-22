@@ -89,6 +89,7 @@ python3 -m ashare_vp.scheduler --once
 - `wrangler.jsonc`：Cloudflare Worker 配置，Worker 名 `ashare-vp`，静态目录 `./site`。
 - `.github/workflows/daily.yml`：GitHub 负责 10:30 / 14:00 和 18:20 收盘兜底；15:30 收盘主跑由 Cloudflare Worker Cron 触发 `workflow_dispatch`。
 - `worker/index.mjs` + `wrangler.jsonc`：Cloudflare Cron + 静态资源 Worker，详见 [docs/外部定时器.md](docs/外部定时器.md)。
+- `.github/workflows/deploy-worker.yml`：`worker/` 或 `wrangler.jsonc` 变化时自动部署 Worker 和 Cron Trigger。
 - 完整方案、免费额度与国内访问备选：[docs/部署方案.md](docs/部署方案.md)。
 
 线上示例：<https://ashare-vp.narcissusliu0428.workers.dev/>

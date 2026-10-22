@@ -1,0 +1,53 @@
+name: deploy-worker
+
+# 只在 Worker 代码或 wrangler 配置变化时部署，避免和每日报告流程重复。
+on:
+  push:
+    paths:
+      - "worker/**"
+      - "wrangler.jsonc"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: true
+
+env:
+  SITE_URL: ${{ vars.SITE_URL || 'https://ashare-vp.narcissusliu0428.workers.dev' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 安装 Node 22（wrangler 4 要求）
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 部署 Worker 与静态资源
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: deploy
+
+      - name: 写入部署摘要
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Worker 部署"
+            echo ""
+            echo "- 站点：$SITE_URL"
+            echo "- Worker Cron：\`30 7 * * 1-5\`（15:30 CST）"
+            echo "- 备注：需要在 Cloudflare 配置 \`GITHUB_TOKEN\` Secret，Cron 才能成功调用 GitHub API。"
+          } >> "$GITHUB_STEP_SUMMARY"
