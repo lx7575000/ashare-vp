@@ -1,7 +1,17 @@
 {
   "version": 1,
-  "updated_at": "2026-10-22T23:21:43",
+  "updated_at": "2026-10-23T23:11:11",
   "items": [
+    {
+      "date": "2026-10-23",
+      "session": "close",
+      "session_label": "收盘",
+      "regime": "震荡",
+      "avg_score": 34.12,
+      "asset_count": 25,
+      "generated_at": "2026-10-23T23:11:11",
+      "file": "2026-10-23_close.html"
+    },
     {
       "date": "2026-10-22",
       "session": "close",
